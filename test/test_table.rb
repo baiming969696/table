@@ -13,15 +13,11 @@ class Tabel_Test < Test::Unit::TestCase
     context "duplicated columns, Table" do
       should "raise ArgumentError" do
         file = Tempfile.new('test')
-        file.write <<END_OF_DOC
-ID\tA\tA
-1\tC++\tgood
-2\tRuby\tbetter
-END_OF_DOC
+        file.write "ID\tA\tA\n1\tC++\tgood\n2\tRuby\tbetter\n"
         file.rewind
         assert_raise ArgumentError do
-          @tab = Table.new(file.path)
-		end
+          Table.new(file.path)
+		    end
         file.close!
       end
     end
@@ -29,15 +25,11 @@ END_OF_DOC
     context "duplicated primary keys, Table" do
       should "raise ArgumentError" do
         file = Tempfile.new('test')
-        file.write <<END_OF_DOC
-ID\tA\tB
-1\tC++\tgood
-1\tRuby\tbetter
-END_OF_DOC
+        file.write "ID\tA\tB\n1\tC++\tgood\n1\tRuby\tbetter\n"
         file.rewind
         assert_raise ArgumentError do
-          @tab = Table.new(file.path)
-		end
+          Table.new(file.path)
+		    end
         file.close!
       end
     end
@@ -45,15 +37,11 @@ END_OF_DOC
     context "an inconsistent-size row, Table" do
       should "raise ArgumentError" do
         file = Tempfile.new('test')
-        file.write <<END_OF_DOC
-ID\tA\tA
-1\tC++\tgood
-2\tRuby
-END_OF_DOC
+        file.write "ID\tA\tA\n1\tC++\tgood\n2\tRuby\n"
         file.rewind
         assert_raise ArgumentError do
-          @tab = Table.new(file.path)
-		end
+          Table.new(file.path)
+		    end
         file.close!
       end
     end
@@ -62,12 +50,12 @@ END_OF_DOC
   context "When asked, a table" do
     setup do
       file = Tempfile.new('test')
-      file.write <<END_OF_DOC
+      file.write <<-END_OF_DOC
 ID\tA\tB\tC
 1\tab\t1\t0.8
 2\tde\t3\t0.2
 5\tfk\t6\t1.9
-END_OF_DOC
+      END_OF_DOC
       file.rewind
       @tab = Table.new(file.path)
       file.close!
@@ -93,6 +81,38 @@ END_OF_DOC
       assert_equal(@tab.row('1')[1], '1')
       assert_equal(@tab.row('2')[0], 'de')
       assert_equal(@tab.row('5')[2], '1.9')
+    end
+
+    should "return selected rows as a Table" do
+      tab = @tab.select_row(['2', '5'])
+      assert_equal(tab.row('2')[0], 'de')
+      assert_equal(tab.row('1', nil))
+    end
+
+    should "return selected columns as a Table" do
+      tab = @tab.select_col(['C', 'A'])
+      assert_raise ArgumentError do
+        tab.col('B')
+      end
+      assert_equal(tab.col('C')['1'], 'ab')
+      assert_equal(tab.row('1')[0], 'ab')
+    end
+    
+    should "merge with another tablb" do
+      file = Tempfile.new('test')
+      file.write <<-END_OF_DOC
+ID\tB\tD\tE
+1\tab\t1\t0.8
+2\tde\t3\t0.2
+5\tfk\t6\t1.9
+      END_OF_DOC
+      file.rewind
+      tab = @tab.merge(Table.new(file.path))
+      file.close!
+      assert(tab.is_a?(Table))
+      assert_equal(tab.row('2')[1], 'de')
+      assert_equal(tab.row('5')[3], '6')
+      assert_equal(tab.col('B')['1'], 'ab')
     end
   end
 end
