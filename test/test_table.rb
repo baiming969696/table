@@ -86,7 +86,7 @@ ID\tA\tB\tC
     should "return selected rows as a Table" do
       tab = @tab.select_row(['2', '5'])
       assert_equal(tab.row('2')[0], 'de')
-      assert_equal(tab.row('1', nil))
+      assert_equal(tab.row('1', ''))
     end
 
     should "return selected columns as a Table" do
